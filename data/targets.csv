@@ -1,0 +1,11 @@
+﻿FileName;Group;CellType;Treatment;ShortName
+GSM1371025;H1 EtOH 0 Rosett;Roseta diferenciada;Sin alcohol;Rosett.0.1
+GSM1371026;H1 EtOH 0 Rosett;Roseta diferenciada;Sin alcohol;Rosett.0.2
+GSM1371027;H1 EtOH 20 Rosett;Roseta diferenciada;Con alcohol;Rosett.20.1
+GSM1371028;H1 EtOH 20 Rosett;Roseta diferenciada;Con alcohol;Rosett.20.2
+GSM1371029;H1 p40 Und;ESC;Sin alcohol;P40.1
+GSM1371030;H1 p40 Und;ESC;Sin alcohol;P40.2
+GSM1371031;NPC H1 EtOH 0;NPC diferenciada;Sin alcohol;NPC.0.1
+GSM1371032;NPC H1 EtOH 0;NPC diferenciada;Sin alcohol;NPC.0.2
+GSM1371033;NPC H1 EtOH 20;NPC diferenciada;Con alcohol;NPC.20.1
+GSM1371034;NPC H1 EtOH 20;NPC diferenciada;Con alcohol;NPC.20.2
