@@ -6,11 +6,14 @@ date: "4/26/2020"
 output:
   pdf_document:
     toc: yes
-  beamer_presentation:
-    latex_engine: xelatex
+    number_sections: true 
+  word_document:
     toc: yes
   html_document:
     df_print: paged
+    toc: yes
+  beamer_presentation:
+    latex_engine: xelatex
     toc: yes
 ---
 
@@ -26,7 +29,7 @@ En este estudio se pueden diferenciar dos claros objetivos:
 
 a) Demostrar los posibles efectos teratogénicos del alcohol en el desarrollo fetal y, por tanto, los consecuentes defectos de desarrollo debidos al abuso del alcohol durante la gestación.
 
-b) Determinar los mecanismos específicos por los que el alcohol media estas lesiones, demostrando que el alcohol tiene un efecto significativo en los mecanismos reguladores moleculares y celulares de la diferenciación de las células madre embrionarias (ESC), incluidos los genes que intervienen en el desarrollo neuronal.
+b) Determinar los mecanismos específicos por los que el alcohol media estas posibles lesiones y determinar si el alcohol tiene un efecto significativo en los mecanismos reguladores moleculares y celulares de la diferenciación de las células madre embrionarias (ESC), incluidos los genes que intervienen en el desarrollo neuronal.
 
 # Materiales
 
@@ -51,7 +54,7 @@ El material en el que he basado mi análisis ha sido descargado desde la página
 
 El conjunto de datos utilizados en este análisis se identifica con el número de adhesión: __GSE56906__:[https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE56906]. En este caso se han analizado 10 muestras distintas.
 
-El __tipo de microarray__ utilizado ha sido del tipo Affymetrix Human Genome U133 Plus 2.0 Array, cuyo fabricante es _Affymetrix_ uno de los principales vendedores de tecnología de microarray.
+El __tipo de microarray__ utilizado ha sido del tipo _Affymetrix Human Genome U133 Plus 2.0 Array_; cuyo fabricante es Affymetrix, uno de los principales vendedores de tecnología de microarray.
 
 ## Software 
 
@@ -68,7 +71,7 @@ El desarrollo detallado de cada paso del análisis lo encontraréis en el archiv
 
 Antes de empezar con el análisis y a manejar la enorme cantidad de datos y ficheros que ello conlleva, crearé tres carpetas para la organización del mismo: 
 
-  + La carpeta principal del análisis será "Effect of alcool in ESC differentiation", la cual también será mi directorio de trabajo.
+  + La carpeta principal del análisis será "Effect_Of_EtOH_in_ESC_differentiation", la cual también será mi directorio de trabajo.
   + Una carpeta llamada __data__ para almecenar todo tipo de datos del experimento y en los cuales basaré mi análisis. En esta carpeta guardaré los archivos _.CEL_ y el archivo _targets_, en el cual se decribirán los factores de estudio y sus niveles.
   + En la carpeta __results__ guardaré todos los resultados obtenidos en el análisis.
   + La carpeta __figures__ servirá para almacenar todo tipo de imágenes y figuras generadas durante el análisis.
@@ -148,13 +151,28 @@ En esta etapa el input son los datos normalizados y el output son los genes filt
 
 Para identificar los genes diferencialmente expresados existen varios métodos. Hasta el momento, el método aue mejores resultados ofrece es el de __Modelos lineales para microarrays__. Dicho método está implementado en el paquete __limma__.
 
-El rimer paso para el análisis basado en modelos lineales es crear la __matriz de diseño__, que es una tabla que describe la asignación de cada muestra a un grupo o condición experimental. Tiene tantas filas como muestras y tantas columnas como grupos, en este caso hay cinco grupos si juntamos los dos factores: tipo celular y tratamiento. Cada fila contiene un uno en la columna del grupo al que pertenece la muestra y un cero en las demás.
+El __primer paso__ para el análisis basado en modelos lineales es crear la __matriz de diseño__, que es una tabla que describe la asignación de cada muestra a un grupo o condición experimental. Tiene tantas filas como muestras y tantas columnas como grupos, en este caso hay cinco grupos si juntamos los dos factores: tipo celular y tratamiento. Cada fila contiene un uno en la columna del grupo al que pertenece la muestra y un cero en las demás.
 
 La matriz de diseño se elabora a partir de los datos filtrados _eset_filtered_ para devolvernos la siguiente matriz de diseño.
 
-```{r LoadSavedData, echo=FALSE}
-#Cargamos los datos filtrados
-if (!exists("eset_filtered")) load (file="./results/normalized.Data.Rda")
+```{r Filtering1, results='hide', message=FALSE, include=FALSE}
+#Descarga del paquete genefilter para la función nsfilter
+library(genefilter)
+#Descarga de la libreria de anotaciones del microarray utilizado
+library(hgu133plus2.db)
+annotation(eset_rma) <- "hgu133plus2.db"
+filtered <- nsFilter(eset_rma, 
+                     require.entrez = TRUE, remove.dupEntrez = TRUE,
+                     var.filter=TRUE, var.func=IQR, var.cutoff=0.75, 
+                     filterByQuantile=TRUE, feature.exclude = "^AFFX")
+```
+```{r FilterResults1, results='hide', echo=FALSE, include=FALSE}
+names(filtered)
+class(filtered$eset)
+```
+```{r FilterResults2, include=FALSE}
+print(filtered$filter.log)
+eset_filtered <-filtered$eset
 ```
 
 ```{r DesignMatrix, message=FALSE, echo=FALSE, error=FALSE, warning=FALSE}
@@ -163,7 +181,251 @@ library(limma)
 designMat<- model.matrix(~0+Group, pData(eset_filtered))
 colnames(designMat) <- c("Rosett.0", "Rosett.20", "p40", "NPC.0", "NPC.20")
 print(designMat)
-#Registro de la matriz de diseño
-write.csv(designMat, file="./results/designMat.csv")
 ```
+
+Una vez hecha la matriz de diseño, el __segundo paso__ es realizar comparaciones entre los grupos de genes a través de la _matriz de contraste_. La matriz de contraste tendrá tantas columnas como comparaciones se hagan y tantas filas como grupos existentes. Esta matriz estará compuesta de 1 y -1 en las filas de grupos a comparar y ceros en el resto.
+
+Según el [artículo del experimento](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5040434/),la correlación de la expresión génica con el tratamiento con EtOH no fue lo suficientemente fuerte sobre el efecto de la diferenciación. Por lo tanto, se decide analizar el conjunto de datos para el efecto del EtOH en las células de la roseta y NPC por separado. 
+
+La matriz de contraste la he definido para realizar cuatro comparaciones, dos comparaciones para cada tipo celular (Roseta y NPC), con el fin de responder a las siguientes preguntas:
+
+__Contrastes para las rosetas neurales:__
+
+  + Efecto de la diferenciación celular hacia rosetas neurales
+  + Efecto del tratamineto con EtOH en rosetas neurales
+
+__Contrastes para las células progenitoras neurales (NPC):__
+
+  + Efecto de la diferenciación celular hacia células progenitoras neurales
+  + Efecto del tratamineto con EtOH en células progenitoras neurales
+  
+```{r setContrasts, echo=FALSE}
+cont.matrix <- makeContrasts (p40vsRosett0 = p40-Rosett.0,
+                              Rosett20vsRosett0 = Rosett.20-Rosett.0,
+                              p40vsNPC0 = p40-NPC.0,
+                              NPC20vsNPC0 = NPC.20-NPC.0,
+                              levels=designMat)
+print(cont.matrix)
+```
+
+Una vez que las matrices de diseño y contraste están creadas, el último paso sería estimar el modelo y hacer las pruebas de significación para decidir qué genes se expresan diferencialmente en cada condición.
+
+El método del paquete _limma_ para la selección de genes utiliza modelos empíricos de Bayes para combinar una estimación de la variabilidad basada en toda la matriz con estimaciones individuales basadas en cada uno de los valores individuales. Los estadísticos de prueba se utilizan para ordenar los genes de más a menos expresados.
+
+Este método, además, controla el número de falsos positivos a través de un ajsute de los p-valores por el método de _Benjamini and Hochberg_.
+
+Finalmente, la información relevante para la posterior exploración de los resultados se almacena en un objeto R de la clase __MArrayLM__ definido en el paquete _limma_. Por tanto, el intput de esta etapa son los datos filtrados mientras que el output será un objeto que se llamará __fit.main__.
+
+Para terminar con la identificación de los genes diferencialmente expresados, debe obtenerse la lista de dichos genes. Esto se hace a través de la función __topTable__ del paquete _limma_. La función _topTable_ nos devolverá una lista de genes ordenados de menor a mayor p-valor, lo que se traduce en genes de más a menos expresados diferencialmente.
+
+En este caso los datos de entrada será el objeto _fit.main_ obtenido anteriormente y los datos de salida una tabla para cada uno de los cuatro contrastes llevados a cabo.
+
+## Anotación de los resultados
+
+El proceso de anotación es la asociación de cada identificador de Affymetrix con cada gen o conjuntos de sondas de cada array a través de identificadores más sencillos de manejar como el _Gene Symbol_, _Entrez Gene_ o _Gene description_, además de complementar los genes seleccionados con la máxima información posible.
+
+Los datos de entrada del proceso de anotación serán el paquete de anotaciones asociado al tipo de microarray utilizado, en este caso este paquete es __hgu133plus2.db__, y las tablas de genes seleccionados creadas anteriormente. El output de esta etapa serán nuevamente tablas de selección de genes a las que se les han añadido las anotaciones e informaciones pertinentes.
+
+Además del listado de genes junto a sus anotaciones, se obtiene también una salida visual a través de un __VolcannoPlot__. A continuación se muestra el ejemplo del resultado de la selección de genes para la primera comparación _p40vsRosett0_.
+
+```{r, linearmodelfit, echo=FALSE, include=FALSE}
+library(limma)
+fit<-lmFit(eset_filtered, designMat)
+fit.main<-contrasts.fit(fit, cont.matrix)
+fit.main<-eBayes(fit.main)
+class(fit.main)
+```
+```{r volcanoPlot, fig.cap="Selección de los cuatro primeros genes en la topTab para el contraste p40vsRosett0", warning=FALSE, message=FALSE, error=FALSE, echo=FALSE}
+library(hgu133plus2.db)
+geneSymbols <- select(hgu133plus2.db, rownames(fit.main), c("SYMBOL"))
+SYMBOLS<- geneSymbols$SYMBOL
+volcanoplot(fit.main, coef=1, highlight=4, names=SYMBOLS, col="red",
+            main=paste("Genes diferencialmente expresados", colnames(cont.matrix)[1], sep="\n"))
+  abline(v=c(-1,1))
+```
+
+## Comparación entre distintas comparaciones
+
+El objetivo es extraer los genes que cambian simultáneamente entre las distintas condiciones experimentales. 
+
+Para lograr dicho objetivo, se utilizará una función llamda __decideTest__ del paquete _lima_ donde los datos de entrada serán los genes seleccionados en _fit.main_. Como salida obtendremos una tabla donde se contabilizan los genes que estan sobreexpresados, los genes que han reducido su expresión y los genes que no han cambiado su nivel de expresión.
+
+Visualmente esta tabla se representa a través de un __Diagrama de Venn__ que se expone en la sección de resultados.
+
+```{r decideTests.1, include=FALSE}
+library(limma)
+res<-decideTests(fit.main, method="separate", adjust.method="fdr", p.value=0.1, lfc=1)
+```
+```{r resumeDecideTests, echo=FALSE}
+#Resumen de la tabla
+sum.res.rows<-apply(abs(res),1,sum)
+res.selected<-res[sum.res.rows!=0,] 
+print(summary(res))
+```
+
+## Análisis de significación biológica ("Gene Enrichment Analysis")
+
+En esta etapa se intenta dar un sentido biológico a la lista de genes obtenida por expresarse diferencialmente en distintas condiciones. El objetivo es identificar las funciones, rutas metabólicas o procesos biológicos donde interviene los genes seleccionados con el fin de saber si estas funciones, vías o procesos aparecen con mayor frecuencia en la lista y, por tanto, son susceptibles de alterarse.
+
+Los datos de entrada serán las listas de genes obtenidas con la función _topTab_ y los datos de salida serán un archivo excel por cada comparación realizada en el estudio así como diferentes gráficos donde se representan las vías enriauecidas en cada proceso y los genes que intervienen en ellas.
+
+Esta etapa se lleva a cabo gracias al paquete __ReactomePA__ de Bioconductor.
+
+# Resultados
+
+Este análisis de microarrays nos deja varios resultados. Para reflejar los resultados de forma más ordenada, he decidido agrupar los resultados en función de las distintas conclusiones que nos dejan.
+
+## Principal componente de variación
+
+Uno de los resultados obtenidos al analizar el microarray es que el principal factor de variación en las 10 muestras estudiadas es el factor __tipo celular__ y no el tratamiento con alcohol. Por lo tanto, la primera conclusión es que la diferenciación celular por si misma afecta en mayor medida al buen desarrollo de las células neurales más que el tratamiento con 20mM de EtOH.
+
+El gráfico "Principal variation component analysis" (PVCA) muestra el porcentaje de variación que representa cada factor de estudio por separado y la interación de ambos factores en conjunto sobre las muestras estudiadas.
+
+```{r BatchDetection, message=FALSE, warning=FALSE, include=FALSE}
+#Cargamos la librería
+library(pvca)
+pData(eset_rma) <- targets
+#Selecciono el punto de corte o umbral
+pct_threshold <- 0.6
+#Selecciono las variables a analizar
+batch.factors <- c("Group", "Treatment")
+#Corro en análisis
+pvcaObj <- pvcaBatchAssess (eset_rma, batch.factors, pct_threshold)
+```
+```{r plotPVCA, fig.cap="Importancia relativa de los dos factores: tipo celular y tratamiento con EtOH que afectan a la expresión de los genes", echo=FALSE}
+#plot the results
+bp <- barplot(pvcaObj$dat, xlab = "Factores",
+  ylab = "Variación de la proporción media ponderada",
+  ylim= c(0,1.1),col = c("turquoise"), las=2,
+  main="Estimación PVCA")
+axis(1, at = bp, labels = pvcaObj$label, cex.axis = 0.55, las=2)
+values = pvcaObj$dat
+new_values = round(values , 3)
+text(bp,pvcaObj$dat,labels = new_values, pos=3, cex = 0.5)
+```
+
+## Tratamiento con EtOH
+
+Tras haber comparado el tratamiento con 20mM de etanol durane 7 días alternos en rosetas neurales y durante 5 días alternos en células precursoras neurales, se ha demostrado que el tratamiento con alcohol afecta de manera más agresiva al desarrollo de las células precursoras neurales; mientras que la diferenciación desde agregados neurales hasta rosetas se ve menos afectado.
+
+Esta conclusión ha sido posible gracias al __Diagrama de Venn__. Al ser dos tipos celulares (rosetas y NPC) bastantes diferentes, en el experimento se decidió estudiar el desarrollo celular de ambos tipos por separado pero siguiendo su evolución bajo el tratamiento con etanol. 
+A continuación se muestran los Diagramas de Venn obtenidos para cada tipo celular, donde se representan los genes que han modificado su expresión por efecto de la diferenciación celular, los genes que han modificado su expresión por efecto del tratamiento con 20mM de EtOH y los genes que han cambiado significativamente su expresión por efecto de la interacción de ambos tratamientos.
+
+__Diagrama de Venn para las rosetas neurales__
+
+```{r, vennDiagramRosett, fig.cap="Diagrama de Venn para mostrar los genes en común entre el efecto de la diferenciación celular y del tratamiento con EtOH en rosetas neurales", echo=FALSE}
+vennDiagram (res.selected[,c(1,2)], cex=0.9, circle.col = "lightpink")
+title("Genes que cambian su expresión en Rosetas \n Genes seleccionados con FDR < 0.1 y logFC > 1")
+```
+
+Del diagrama de Venn para las _rosetas neurales_ se obtienen las siguientes conclusiones:
+
+  + Existen $2449+5 = 2454$ genes que cambian su expresión por el efecto de la diferenciación celular desde H1 hESC hasta rosetas neurales.
+  + Tan sólo $5+1 = 6$ genes cambian su expresión por el efecto del tratamiento con 20mM de EtOH durante la diferenciación hacia rosetas neurales.
+  + Un total de $5$ genes ven alterada su expresión debido a la interación de ambas condiciones: diferenciación celular y tratamiento con EtOH.
+    + $1178$ genes no cambian sus perfiles de expresión ni por el efecto de la diferenciación celular ni por efecto del tratamiento con EtOH.
+
+
+__Diagrama de Venn para células progenitoras neurales (NPC)__
+
+```{r, vennDiagramNPC, fig.cap="Diagrama de Venn para mostrar los genes en común entre el efecto de la diferenciación celular y del tratamiento con EtOH en NPC", echo=FALSE}
+vennDiagram (res.selected[,c(3,4)], cex=0.9, circle.col = "lightblue")
+title("Genes que cambian su expresión en NPC \n Genes seleccionados con FDR < 0.1 y logFC > 1")
+```
+
+El diagrama de Venn para las _NPC_ nos deja los siguientes datos:
+
+  + Existen $3122+23 = 3145$ genes que cambian su expresión por el efecto de la diferenciación celular desde H1 hESC hasta NPC.
+  + Tan sólo $23+9 = 32$ genes cambian su expresión por el efecto del tratamiento con 20mM de EtOH durante la diferenciación hacia NPC.
+  + Un total de $23$ genes ven alterada su expresión debido a la interación de ambas condiciones: diferenciación celular y tratamiento con EtOH en NPC.
+    + $479$ genes no cambian sus perfiles de expresión ni por el efecto de la diferenciación celular ni por efecto del tratamiento con EtOH en NPC.
+    
+
+## Tabla de anotaciones
+
+Es posible hacer una tabla de anotaciones con hiperenlaces a las bases de datos para cada anotación de los genes seleccionados anteriormente. Esta tabla es posible gracias al paquete __annaffy__ y al resultado se puede acceder a través del siguiente enlace: [file:///Users/ballesteros_marina/Desktop/ADO/MyProject/PEC/results/anotaciones.html] 
+
+## Análisis de significación biológica
+
+__Gene Set Enrichment Analysis__ es la aproximación estadística que ayuda a interpretar la significación biológica de los genes seleccionados que cambian su expresión.
+Su objetivo es identificar las funciones, rutas moleculares y procesos biológicos que aparecen con mayor frecuencia entre las listas de los genes seleccionados para deducir cuáles son los procesos y funciones alterados por la diferente expresión de esos genes.
+
+En este análisis se ha utilizado el paquete de Bioconductor __ReactomePA__. El paquete se basa en un modelo hipergeométrico para evaluar si el número de genes seleccionados asociados a las vías es mayor de lo esperado.
+Gracias a la función __enrichPathway__ de este mismo paquete, se seleccionan los genes cuyo p-valor es inferior a 0.05 dentro del universo de genes, que son todos los genes disponibles en la anotación __org.Hs.eg.db__ para el _Homo sapines_.
+
+Los resultados completos están disponibles en el directorio __results__ del repertorio Github proporcionado al inicio de este informe.
+
+Para visualizar en este informe un ejemplo concreto de este análisis de significación biológica, he incluído el __barplot__ del efecto del tratamiento con EtOH en las células NPC. En el gráfico se recogen las vías más enriquecidas debido al tratamiento durante la diferenciación de las ESC hasta NPC en comparación con el proceso de diferenciación sin el tratamiento.
+La altura de cada barra corresponde al número de genes que están implicados en la diferecniación bajo el efecto del EtOH. Además, las vías están ordenadas en función de su significación estadística.
+
+```{rBarPlot_NPC20vsNPC0, echo=FALSE, fig.cap="Barplot para el análisis de enriquecimiento de las NPC bajo el tratamiento con alcohol"}
+print(barplot(enrich.result, showCategory = 15, font.size = 4, 
+            title = paste0("Reactome Pathway Analysis for ", comparison,". Barplot")))
+```
+
+En el gráfico se co firma que las vías más enriquecidas por el tratamiento con 20mM de EtOH durante la difeenciación celular desde ESC hasta NPC son:
+
+  + La vía de señalización del receptor tirosina quinasa.
+  + El proceso de organización de la matriz extracelular.
+  + El sistema neural.
+  
+Para acabar los resultados que nos deja el análisis de enriquecimiento biológico, dejo cuatro listas donde se agrupan los cinco procesos más enriquecidos en cada comparación llevada a cabo. En las cuatro situaciones analizadas la ruta de organización de la matriz extracelular se encuentra muy enriquecida y en tres de ellas la vía de señalización del receptor tiosina quinasa también se ve alterado, confirmando así los resultados obtenidos en el barplot mostrado anteriormente.
+
+**Tabla resumen para p40vsRosett0**: Vías y procesos más enriquecidos por la diferenciación celular desde ESC hasta rosetas neurales.
+
+```{r tableReactop40vsRosett0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.p40vsRosett0.csv"), 
+                       sep = ",", header = TRUE, row.names = 1)
+
+Tab.react <- Tab.react[1:5, 1:5]
+knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for Reactome results on p40vsRosett0.csv comparison")
+```
+
+**Tabla resumen para Rosett20vsRosett0**: Vías y procesos más enriquecidos por el tratamiento con 20mM de EtOH durante la diferenciación celular desde ESC hasta rosetas neurales.
+
+```{r tableReactoRosett20vsRosett0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.Rosett20vsRosett0.csv"), 
+                       sep = ",", header = TRUE, row.names = 1)
+
+Tab.react <- Tab.react[1:5, 1:5]
+knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for Reactome results on Rosett20vsRosett0.csv comparison")
+```
+
+**Tabla resumen para p40vsNPC0**: Vías y procesos más enriquecidos por la diferenciación celular desde ESC hasta células precursoras neurales.
+
+```{r tableReactop40vsNPC0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.p40vsNPC0.csv"), 
+                       sep = ",", header = TRUE, row.names = 1)
+
+Tab.react <- Tab.react[1:5, 1:5]
+knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for Reactome results on p40vsNPC0.csv comparison")
+```
+
+**Tabla resumen para NPC20vsNPC0**: Vías y procesos más enriquecidos por el tratamiento con 20mM de EtOH durante la diferenciación celular desde ESC hasta células precursorras neurales.
+
+```{r tableReactoNPC20vsNPC0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.NPC20vsNPC0.csv"), 
+                       sep = ",", header = TRUE, row.names = 1)
+
+Tab.react <- Tab.react[1:5, 1:5]
+knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for Reactome results on NPC20vsNPC0.csv comparison")
+```
+
+# Discusión
+
+La principal limitación que se encuentra en el estudio es la gran diferencia entre las rosetas neurales y las células progenitoras celulares. Esta diferencia es tan grande que mientras se realizaba el estudio se decidió bifurcar el estudio en dos: uno para las rosetas neurales y otro para las células progenitoras.
+
+En este sentido, la limitación es que el efecto que tiene el tratamiento con 20mM de EtOH debe hacerse de manera individualizada parrra cada grupo celular sin poderr hacer una extrapolación o comparación directa entre grupos.
+
+Otra posible limitación es que el efecto del tratamiento con alcohol queda enmascarado parcialmente por lso enormes cambios que el proceso de diferenciación celular produce por sí mismo.
+
+# Conclusión
+
+Si volvemos a los objetivos de este estudio para ver si se han cumplido, podemos decir que ambos objetivos han quedado demostrados pues se ha visto que el tratamiento con alcohol hace que determinados genes cambien su expresión y, además, se han determinado específicamente las vías enriquecidas por este efecto.
+
+Queda demostrado también que los efectos que el EtOH causa en las células neurales es siempre dañino y nunca tiene un sentido positivo. Como el alcohol inhibe la diferenciación de los células madre neurales (NSC), el crecimiento celular, la migración y la viabilidad celular se ven afectados negativamente. En concreto, los NSC tratados con EtOH muestran retrasos en el ciclo celular, reducción de la proliferación de NSC y aumento de la fragmentación del ADN.
+
+En este estudio, se han generado células madre neurales a partir de hESCs pluripotentes y se han examinado los cambios globales de la firma transcriptómica afectados por el tratamiento con etanol, identificanso así los posibles efectos moleculares de la exposición fetal al alcohol en la diferenciación neural del desarrollo embrionario temprano. En particular, se han identificado y verificado varios genes candidatos que el alcohol podría interferir en la regulación de las células madre neurales (ver el directorio __resultados__). Se ha demostrado que las principales vías moleculares de las NPC afectadas por el EtOH están asociadas con la exposición al alcohol y no por el proceso normal de diferenciación celular. Prueba de ello es que en los Diagramas de Venn el número de genes que cambian su expresión por el tratamiento con el alcohol es mucho mayor que en las rosetas neurales.
+
+
 

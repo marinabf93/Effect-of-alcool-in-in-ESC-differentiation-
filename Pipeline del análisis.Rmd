@@ -158,16 +158,17 @@ plotPCA3 <- function (datos, labels, factor, title, scale,colores, size = 1.5, g
 ```
 
 
+
 ```{r PCARaw, message=FALSE, fig.cap="Visualization of the two first Principal Components for raw data"}
 require(ggplot2)
 plotPCA3(exprs(rawData), labels = targets$ShortName, factor = targets$Group, 
-         title="Datos crudos", scale = FALSE, size = 4, 
+         title="Raw Data", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 ```
 ```{r savePCAraw, echo=TRUE, results='hide', include=FALSE}
 tiff("figures/PCA_RawData.tiff", res = 200, width = 4.5, height = 4, units = 'in')
 plotPCA3(exprs(rawData), labels = targets$ShortName, factor = targets$Group, 
-         title="Datos crudos", scale = FALSE, size = 4, 
+         title="Raw Data", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 dev.off()
 ```
@@ -219,14 +220,14 @@ Se puede observar en el gráfico de __Componentes Principales__ de los datos nor
 
 ```{r PCANorm, message=FALSE, fig.cap="Visualization of first two principal components for normalized data"}
 plotPCA3(exprs(eset_rma), labels = targets$ShortName, factor = targets$Group, 
-         title="Datos normalizados", scale = FALSE, size = 4, 
+         title="Normalized Data", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 ```
 ```{r savePCANormalized, echo=FALSE, results='hide'}
 #Guardo el plot PCA en un archivo tiff en el directorio figures
 tiff("figures/PCA_NormalizedData.tiff", res = 200, width = 4, height = 4, units = 'in')
 plotPCA3(exprs(eset_rma), labels = targets$ShortName, factor = targets$Group, 
-         title="Datos normalizados", scale = FALSE, size = 4, 
+         title="Normalized Data", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 dev.off()
 ```
@@ -265,7 +266,7 @@ pvcaObj <- pvcaBatchAssess (eset_rma, batch.factors, pct_threshold)
 
 En el gráfico de estimación de PVCA se muestra una barra por cada fuente de variación incluída en el análisis. El gráfico indica que el factor _Group_ es el de mayor variabilidad, al cual se le atribuye aproximadamente el 79% de la variación; esto coincide con lo observado en los gráficos de componentes principales tanto de los datos en crudo como de los datos normalizados. Además, se indica que el factor _Tratamiento con EtOH_ tan sólo supone un 2,7% de la variabilidad de las muestras.
 
-```{r plotPVCA, fig.cap="Relative importance of the different factors -genotype, temperature and interaction- affecting gene expression", echo=FALSE}
+```{r plotPVCA, fig.cap="Importancia relativa de los dos factores: tipo celular y tratamiento con EtOH que afectan a la expresión de los genes", echo=FALSE}
 #plot the results
 bp <- barplot(pvcaObj$dat, xlab = "Factores",
   ylab = "Variación de la proporción media ponderada",
@@ -466,10 +467,16 @@ Los resultados de las tablas de selección se pueden visualizar a través de un 
 
 Los resultados se recogen en el archivo _Volvanos.pdf_ del directorio __figures__.
 
+```{r volcanoPlot, selection of the four first genes on the topTab, warning=FALSE, message=FALSE, error=FALSE}
+library(hgu133plus2.db)
+geneSymbols <- select(hgu133plus2.db, rownames(fit.main), c("SYMBOL"))
+SYMBOLS<- geneSymbols$SYMBOL
+```
+
 ```{r saveVolcanos, echo=FALSE, results='hide'}
 pdf("figures/Volcanos.pdf")
 for (i in colnames(cont.matrix)){
-  volcanoplot(fit.main, coef=i, highlight=4, names=fit.main$ID, col="red",
+  volcanoplot(fit.main, coef=i, highlight=4, names=SYMBOLS, col="red",
               main=paste("Genes diferencialmente expresados",i, sep="\n"))
   abline(v=c(-1,1))
 }
@@ -593,7 +600,7 @@ dev.off()
 
 Es posible hacer una tabla de anotaciones con hiperenlaces a las bases de datos para cada anotación de los genes seleccionados anteriormente. Esta tabla es posible gracias al paquete __annaffy__ y el resultado se recoge en un archivo llamado _anotaciones.html_ dentro del directorio __resultados__.
 
-```{rAnnotations for selected genes, echo=FALSE, results='hide', message=FALSE, error=FALSE}
+```{rAnnotations for selected genes, echo=FALSE, results='hide', message=FALSE, error=FALSE, warning=FALSE}
 BiocManager::install("annaffy")
 require(annaffy)
 genesSelected<-rownames(res.selected)
@@ -640,7 +647,8 @@ sapply(listOfSelected, length)
 
 En este estudio el organismo utilizado es el _Homo sapiens_, por lo que debemos indicar que los genes que han de mapearse tanto para las anotaciones en GO como en KEEG corresponden a dicho organismo.
 
-```{rAnnotations GSEA, include=FALSE}
+```{r}
+library(org.Hs.eg.db)
 mapped_genes2GO <- mappedkeys(org.Hs.egGO)
 mapped_genes2KEGG <- mappedkeys(org.Hs.egPATH)
 mapped_genes <- union(mapped_genes2GO , mapped_genes2KEGG)
@@ -705,7 +713,7 @@ Para este estudio se han analizado cuatro comparaciones o conjuntos de genes, lo
 
 **Tabla resumen para p40vsRosett0**
 
-```{r tableReactop40vsRosett0, echo=FALSE}
+```{r tableReactop40vsRosett0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.p40vsRosett0.csv"), 
                        sep = ",", header = TRUE, row.names = 1)
 
@@ -715,7 +723,7 @@ knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for R
 
 **Tabla resumen para Rosett20vsRosett0**
 
-```{r tableReactoRosett20vsRosett0, echo=FALSE}
+```{r tableReactoRosett20vsRosett0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.Rosett20vsRosett0.csv"), 
                        sep = ",", header = TRUE, row.names = 1)
 
@@ -725,7 +733,7 @@ knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for R
 
 **Tabla resumen para p40vsNPC0**
 
-```{r tableReactop40vsNPC0, echo=FALSE}
+```{r tableReactop40vsNPC0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.p40vsNPC0.csv"), 
                        sep = ",", header = TRUE, row.names = 1)
 
@@ -735,7 +743,7 @@ knitr::kable(Tab.react, booktabs = TRUE, caption = "First rows and columns for R
 
 **Tabla resumen para NPC20vsNPC0**
 
-```{r tableReactoNPC20vsNPC0, echo=FALSE}
+```{r tableReactoNPC20vsNPC0, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 Tab.react <- read.csv2(file.path("./results/ReactomePA.Results.NPC20vsNPC0.csv"), 
                        sep = ",", header = TRUE, row.names = 1)
 
