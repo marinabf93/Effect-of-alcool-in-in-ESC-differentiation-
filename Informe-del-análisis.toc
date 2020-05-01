@@ -7,17 +7,18 @@
 \contentsline {section}{\numberline {4}Métodos: Procedimiento general del análisis (``Workflow'')}{3}{section.4}%
 \contentsline {subsection}{\numberline {4.1}Identificación de los grupos y clasificación de las muestras}{4}{subsection.4.1}%
 \contentsline {subsection}{\numberline {4.2}Control de calidad de los datos crudos}{4}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}Normalización}{4}{subsection.4.3}%
-\contentsline {subsection}{\numberline {4.4}Control de calidad de los datos normalizados}{5}{subsection.4.4}%
-\contentsline {subsection}{\numberline {4.5}Filtraje no específico}{5}{subsection.4.5}%
-\contentsline {subsection}{\numberline {4.6}Identificación de genes diferencialmente expresados}{5}{subsection.4.6}%
-\contentsline {subsection}{\numberline {4.7}Anotación de los resultados}{8}{subsection.4.7}%
-\contentsline {subsection}{\numberline {4.8}Comparación entre distintas comparaciones}{8}{subsection.4.8}%
-\contentsline {subsection}{\numberline {4.9}Análisis de significación biológica (``Gene Enrichment Analysis'')}{9}{subsection.4.9}%
-\contentsline {section}{\numberline {5}Resultados}{9}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Principal componente de variación}{9}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Tratamiento con EtOH}{10}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Tabla de anotaciones}{11}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Análisis de significación biológica}{12}{subsection.5.4}%
-\contentsline {section}{\numberline {6}Discusión}{14}{section.6}%
-\contentsline {section}{\numberline {7}Conclusión}{14}{section.7}%
+\contentsline {subsection}{\numberline {4.3}Normalización}{5}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Control de calidad de los datos normalizados}{6}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Filtraje no específico}{7}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Identificación de genes diferencialmente expresados}{7}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}Anotación de los resultados}{9}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Comparación entre distintas comparaciones}{10}{subsection.4.8}%
+\contentsline {subsection}{\numberline {4.9}Análisis de significación biológica (``Gene Enrichment Analysis'')}{10}{subsection.4.9}%
+\contentsline {section}{\numberline {5}Resultados}{11}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Principal componente de variación}{11}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Tratamiento con EtOH}{12}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Visualización de los perfiles de expresión génica}{13}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Análisis de significación biológica}{14}{subsection.5.4}%
+\contentsline {section}{\numberline {6}Discusión}{18}{section.6}%
+\contentsline {section}{\numberline {7}Conclusión}{19}{section.7}%
+\contentsline {section}{Bibliografía}{19}{section*.2}%

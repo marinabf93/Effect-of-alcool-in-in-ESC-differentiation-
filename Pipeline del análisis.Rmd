@@ -131,7 +131,7 @@ Los arrays 7 y 9 se consideran outliers a través de un plot MA, el cual visuali
 
 A continuación desarrollo el gráfico resultado del __Análisis de Componentes Principales (PCA)__, donde se recogen los dos primeros componentes principales.Dicho gráfico se recoge en el directorio _figures_.
 
-```{rFunction plot PCA, include=FALSE}
+```{r Function plot PCA, include=FALSE}
 library(ggplot2)
 library(ggrepel)
 plotPCA3 <- function (datos, labels, factor, title, scale,colores, size = 1.5, glineas = 0.25) {
@@ -162,13 +162,13 @@ plotPCA3 <- function (datos, labels, factor, title, scale,colores, size = 1.5, g
 ```{r PCARaw, message=FALSE, fig.cap="Visualization of the two first Principal Components for raw data"}
 require(ggplot2)
 plotPCA3(exprs(rawData), labels = targets$ShortName, factor = targets$Group, 
-         title="Raw Data", scale = FALSE, size = 4, 
+         title="Datos crudos", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 ```
 ```{r savePCAraw, echo=TRUE, results='hide', include=FALSE}
 tiff("figures/PCA_RawData.tiff", res = 200, width = 4.5, height = 4, units = 'in')
 plotPCA3(exprs(rawData), labels = targets$ShortName, factor = targets$Group, 
-         title="Raw Data", scale = FALSE, size = 4, 
+         title="Datos crudos", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 dev.off()
 ```
@@ -220,14 +220,14 @@ Se puede observar en el gráfico de __Componentes Principales__ de los datos nor
 
 ```{r PCANorm, message=FALSE, fig.cap="Visualization of first two principal components for normalized data"}
 plotPCA3(exprs(eset_rma), labels = targets$ShortName, factor = targets$Group, 
-         title="Normalized Data", scale = FALSE, size = 4, 
+         title="Datos normalizados", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 ```
 ```{r savePCANormalized, echo=FALSE, results='hide'}
 #Guardo el plot PCA en un archivo tiff en el directorio figures
 tiff("figures/PCA_NormalizedData.tiff", res = 200, width = 4, height = 4, units = 'in')
 plotPCA3(exprs(eset_rma), labels = targets$ShortName, factor = targets$Group, 
-         title="Normalized Data", scale = FALSE, size = 4, 
+         title="Datos normalizados", scale = FALSE, size = 4, 
          colores = c("red", "blue", "green", "yellow", "pink"))
 dev.off()
 ```
@@ -570,6 +570,27 @@ geneSymbols <- select(hgu133plus2.db, rownames(HMdata), c("SYMBOL"))
 SYMBOLS<- geneSymbols$SYMBOL
 rownames(HMdata) <- SYMBOLS
 write.csv(HMdata, file = file.path("./results/dataHeatmap.csv"))
+```
+```{r Heatmap, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, fig.cap="Heatmap de los perfiles de expresión de los genes seleccionados", fig.height=5, fig.width=5}
+my_palette <- colorRampPalette(c("blue", "red"))(n = 299)
+library(gplots)
+heatmap.2(HMdata,
+          Rowv = TRUE,
+          Colv = TRUE,
+          dendrogram = "both",
+          main = "Genes diferencialmente expresados \n FDR < 0,1, logFC >=1",
+          scale = "row",
+          col = my_palette,
+          sepcolor = "white",
+          sepwidth = c(0.05,0.05),
+          cexRow = 0.5,
+          cexCol = 0.9,
+          key = TRUE,
+          keysize = 1.2, 
+          density.info = "histogram",
+          ColSideColors = c(rep("red",2),rep("blue",2), rep("green",2), rep("yellow",2), rep("orange",2)),
+          tracecol = NULL,
+          srtCol = 30)
 ```
 
 ```{r HeatmapTiff, echo=FALSE, results='hide', message=FALSE, warning=FALSE, error=FALSE}
